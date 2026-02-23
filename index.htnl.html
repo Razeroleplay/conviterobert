@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formatura Robert - PMSE</title>
+
+<style>
+body{
+    font-family: Arial;
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
+    display:flex;
+    justify-content:center;
+    padding:20px;
+}
+
+.container{
+    position:relative;
+    background:rgba(255,255,255,0.1);
+    padding:20px;
+    border-radius:10px;
+    width:100%;
+    max-width:500px;
+}
+
+.logo{
+    position:absolute;
+    top:15px;
+    left:15px;
+    width:70px;
+}
+
+h1{
+    text-align:center;
+    margin-top:10px;
+}
+
+.info-evento{
+    text-align:center;
+    font-size:16px;
+    margin-bottom:15px;
+    font-weight:bold;
+    color:#FFD700;
+    line-height:1.5;
+}
+
+input,select,button{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    border-radius:5px;
+    border:none;
+}
+
+button{
+    background:#00c6ff;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0072ff;
+}
+
+button.limpar{
+    background:#ff4d4d;
+}
+
+button.limpar:hover{
+    background:#cc0000;
+}
+
+.success{
+    background:#28a745;
+    padding:10px;
+    margin-top:10px;
+    border-radius:5px;
+    text-align:center;
+}
+
+.admin{
+    margin-top:30px;
+    padding-top:15px;
+    border-top:1px solid rgba(255,255,255,0.3);
+}
+
+.lista{
+    margin-top:10px;
+    background:rgba(0,0,0,0.3);
+    padding:10px;
+    border-radius:5px;
+}
+
+.tipo-badge{
+    font-size:12px;
+    padding:3px 6px;
+    border-radius:4px;
+    background:#000;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<img src="brasao.png" class="logo">
+
+<h1>🎓 Formatura Robert - PMSE</h1>
+
+<div class="info-evento">
+DATA DA COMEMORAÇÃO E DA MISSA DE CELEBRAÇÃO: DIA 05 DE MARÇO DE 2026<br>
+Missa de celebração: 07h<br>
+Almoço: a partir das 12h<br>
+Local da missa: Igreja Matriz<br>
+Local do almoço: Área de Lazer da Academia Irmãos Unidos
+</div>
+
+<form id="rsvpForm">
+
+<input type="text" id="nome" placeholder="Seu nome" required>
+
+<label>Tipo de convidado:</label>
+<select id="tipo" required>
+<option value="">Selecione</option>
+<option value="Familia">Família</option>
+<option value="Amigo">Amigo</option>
+</select>
+
+<div id="areaFamilia" style="display:none;">
+<label>Quantidade de acompanhantes (1 a 7):</label>
+<select id="qtdFamilia">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+<option value="5">5</option>
+<option value="6">6</option>
+<option value="7">7</option>
+</select>
+
+<div id="nomesFamilia"></div>
+</div>
+
+<button type="submit">Confirmar Presença</button>
+</form>
+
+<div id="mensagem"></div>
+
+<div class="admin">
+<h2>🔒 Painel Administrativo</h2>
+
+<div id="loginAdmin">
+<input type="password" id="senhaAdmin" placeholder="Digite a senha">
+<button onclick="login()">Entrar</button>
+</div>
+
+<div id="painel" style="display:none;">
+<div class="lista">
+<h3>Lista de Confirmados</h3>
+<ul id="lista"></ul>
+</div>
+
+<!-- BOTÃO DE LIMPAR -->
+<button class="limpar" onclick="solicitarLimpeza()">🗑 Limpar Lista</button>
+</div>
+
+</div>
+</div>
+
+<script>
+const SENHA = "pmse2026";
+
+const tipoSelect = document.getElementById("tipo");
+const areaFamilia = document.getElementById("areaFamilia");
+const qtdFamilia = document.getElementById("qtdFamilia");
+const nomesFamiliaDiv = document.getElementById("nomesFamilia");
+const form = document.getElementById("rsvpForm");
+
+// Mostra campo acompanhante só para família
+tipoSelect.addEventListener("change", function(){
+    if(this.value === "Familia"){
+        areaFamilia.style.display = "block";
+    } else {
+        areaFamilia.style.display = "none";
+        nomesFamiliaDiv.innerHTML="";
+    }
+});
+
+// Gera campos para nomes dos acompanhantes
+qtdFamilia.addEventListener("change", function(){
+    nomesFamiliaDiv.innerHTML="";
+    for(let i=1;i<=this.value;i++){
+        nomesFamiliaDiv.innerHTML += 
+        `<input type="text" placeholder="Nome do acompanhante ${i}" required>`;
+    }
+});
+
+// Confirma presença
+form.addEventListener("submit", function(e){
+    e.preventDefault();
+
+    const nome = document.getElementById("nome").value;
+    const tipo = tipoSelect.value;
+
+    let familiares = [];
+
+    if(tipo === "Familia"){
+        const inputs = nomesFamiliaDiv.querySelectorAll("input");
+        inputs.forEach(input=>{
+            familiares.push(input.value);
+        });
+    }
+
+    const dados = { nome, tipo, familiares };
+
+    let lista = JSON.parse(localStorage.getItem("confirmados")) || [];
+    lista.push(dados);
+    localStorage.setItem("confirmados", JSON.stringify(lista));
+
+    document.getElementById("mensagem").innerHTML =
+    `<div class="success">Presença confirmada com sucesso!</div>`;
+
+    form.reset();
+    nomesFamiliaDiv.innerHTML="";
+    areaFamilia.style.display="none";
+
+    carregarLista();
+});
+
+// Login admin
+function login(){
+    const senha = document.getElementById("senhaAdmin").value;
+    if(senha === SENHA){
+        document.getElementById("loginAdmin").style.display="none";
+        document.getElementById("painel").style.display="block";
+        carregarLista();
+    } else{
+        alert("Senha incorreta!");
+    }
+}
+
+// Carrega lista de confirmados
+function carregarLista(){
+    const ul = document.getElementById("lista");
+    ul.innerHTML="";
+    let lista = JSON.parse(localStorage.getItem("confirmados")) || [];
+
+    lista.forEach(p=>{
+        const li = document.createElement("li");
+
+        let texto = `<strong>${p.nome}</strong> 
+        <span class="tipo-badge">${p.tipo}</span>`;
+
+        if(p.tipo === "Familia"){
+            texto += `<br>👨‍👩‍👧‍👦 Total acompanhantes: ${p.familiares.length}`;
+            texto += `<br>Nomes: ${p.familiares.join(", ")}`;
+        } else{
+            texto += `<br>Sem acompanhantes`;
+        }
+
+        li.innerHTML = texto + "<hr>";
+        ul.appendChild(li);
+    });
+}
+
+// Função para limpar lista com confirmação + senha
+function solicitarLimpeza(){
+    if(confirm("Tem certeza que deseja limpar toda a lista de confirmados?")){
+        const senha = prompt("Digite a senha do admin para confirmar a limpeza:");
+        if(senha === SENHA){
+            localStorage.removeItem("confirmados");
+            carregarLista();
+            alert("Lista limpa com sucesso!");
+        } else {
+            alert("Senha incorreta! Lista não foi limpa.");
+        }
+    }
+}
+
+carregarLista();
+</script>
+
+</body>
+</html>
